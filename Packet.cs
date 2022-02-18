@@ -28,21 +28,16 @@ namespace RCONCon
             get;
             private set;
         }
-        public int GetSizeParamValue()
+
+        public int SizeParam
         {
-            /**
-            RequestId       4bytes          
-            PacketType      4bytes          
-            Payload+nul     varies+1bytes   
-            Empty String    1bytes
-            -----------------------------
-            sum             10 + Payload bytes
-            パケットのsizeのパラメータ分のバイト数は含まない
-            **/
-            Encoding ascii = Encoding.ASCII;
-            int payloadLength = ascii.GetBytes(this.Payload).Length;
-            int size = 10 + payloadLength;
-            return size;
+            get
+            {
+                Encoding ascii = Encoding.ASCII;
+                int payloadLength = ascii.GetBytes(this.Payload).Length;
+                int size = 10 + payloadLength;
+                return size;
+            }
         }
-    }   
+    }
 }

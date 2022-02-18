@@ -1,6 +1,6 @@
 namespace RCONCon
 {
-    public class ResponsePacket : Packet
+    class ResponsePacket : Packet
     {
         public ResponsePacket(string Payload, int Id, ResponsePacketType Type) : base(Payload, Id)
         {

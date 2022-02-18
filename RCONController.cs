@@ -1,7 +1,6 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading;
 
 namespace RCONCon
 {
@@ -12,7 +11,10 @@ namespace RCONCon
         NetworkStream ns;
         int PacketId;
         static Random rnd = new Random();
-        public bool IsAuthenticated = false;
+        public bool IsAuthenticated{
+            get;
+            private set;
+        }
         BinaryReader reader;
         BinaryWriter writer;
         public RCONController(string IP, int Port = 27015)
@@ -41,7 +43,7 @@ namespace RCONCon
             byte[] RequestPayloadBytes = Encoding.ASCII.GetBytes(request.Payload + "\u0000");
             byte[] nul = Encoding.ASCII.GetBytes("\u0000");
 
-            byte[] sizeBytes = IntToBytesLE(request.GetSizeParamValue());
+            byte[] sizeBytes = IntToBytesLE(request.SizeParam);
             byte[] idBytes = IntToBytesLE(request.Id);
             byte[] typeBytes = IntToBytesLE((int)request.Type);
 
@@ -120,7 +122,7 @@ namespace RCONCon
             }
         }
 
-        public ResponsePacket SendCommand(string Command)
+        public string SendCommand(string Command)
         {
             if (!IsAuthenticated)
             {
@@ -130,7 +132,7 @@ namespace RCONCon
             RequestPacket request = new RequestPacket(Command, PacketId, RequestPacketType.ExecCommand);
             ResponsePacket response = SendPacket(request);
 
-            return response;
+            return response.Payload;
         }
 
         public void Dispose()
