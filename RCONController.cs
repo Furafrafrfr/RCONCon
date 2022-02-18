@@ -14,6 +14,7 @@ namespace RCONCon
         static Random rnd = new Random();
         public bool IsAuthenticated = false;
         BinaryReader reader;
+        BinaryWriter writer;
         public RCONController(string IP, int Port = 27015)
         {
             IPAddress addr = IPAddress.Parse(IP);
@@ -24,6 +25,7 @@ namespace RCONCon
             client.Connect(Endpoint);
             this.ns = client.GetStream();
             reader = new BinaryReader(ns);
+            writer = new BinaryWriter(ns);
         }
 
         ResponsePacket SendPacket(RequestPacket request)
@@ -36,9 +38,8 @@ namespace RCONCon
 
         void WriteRequest(RequestPacket request)
         {
-            Encoding ascii = Encoding.ASCII;
-            byte[] RequestPayloadBytes = ascii.GetBytes(request.Payload + "\u0000");
-            byte[] nul = ascii.GetBytes("\u0000");
+            byte[] RequestPayloadBytes = Encoding.ASCII.GetBytes(request.Payload + "\u0000");
+            byte[] nul = Encoding.ASCII.GetBytes("\u0000");
 
             byte[] sizeBytes = IntToBytesLE(request.GetSizeParamValue());
             byte[] idBytes = IntToBytesLE(request.Id);
@@ -51,7 +52,7 @@ namespace RCONCon
             RequestPayloadBytes.CopyTo(packetBytes, 12);
             packetBytes[packetBytes.Length - 1] = nul[0];
 
-            ns.Write(packetBytes, 0, packetBytes.Length);
+            writer.Write(packetBytes);
         }
 
         byte[] IntToBytesLE(int value)
@@ -69,33 +70,15 @@ namespace RCONCon
 
         ResponsePacket ReadResponse()
         {
-            // byte[] sizeBytes = new byte[4];
-            // int sizeSuccess = ns.Read(sizeBytes, 0, 4);
-            // byte[] idBytes = new byte[4];
-            // int idSuccess = ns.Read(sizeBytes, 0, 4);
-            // byte[] typeBytes = new byte[4];
-            // int typeSuccess = ns.Read(sizeBytes, 0, 4);
-
-            // Console.WriteLine($"Number of bytes successfully readed: size=${sizeSuccess}, id={idSuccess}, type={typeSuccess}");
-            // int size = BytesToInt32LE(sizeBytes);
-            // int id = BytesToInt32LE(idBytes);
-            // ResponsePacketType type = (ResponsePacketType)BytesToInt32LE(typeBytes);
-
-            // int payloadSize = size - 8;
-            // byte[] payloadBytes = new byte[payloadSize];
-            // ns.Read(payloadBytes, 0, payloadSize);
-            // string payload = Encoding.ASCII.GetString(payloadBytes);
-
-            // ResponsePacket response = new ResponsePacket(payload, id, type);
-            // return response;
-
             int size = reader.ReadInt32();
             int id = reader.ReadInt32();
             ResponsePacketType type = (ResponsePacketType)reader.ReadInt32();
-            byte [] packetBytes = reader.ReadBytes(size - 10);
-            string packet = Encoding.ASCII.GetString(packetBytes);
+            byte[] payloadBytes = reader.ReadBytes(size - 8);
+            // nul文字も取り除く
+            string payload = Encoding.ASCII.GetString(payloadBytes);
+            payload = payload.Substring(0, payload.Length - 2);
 
-            return new ResponsePacket(packet, id, type);
+            return new ResponsePacket(payload, id, type);
         }
 
         int BytesToInt32LE(byte[] value)
@@ -110,35 +93,30 @@ namespace RCONCon
             }
         }
 
-        int ReadInt32(byte[] source, int start)
-        {
-            byte[] resultBytes = new byte[4];
-            Array.Copy(source, start, resultBytes, 0, 4);
-            return BytesToInt32LE(resultBytes);
-        }
-
         public void Authenticate(string Password)
         {
             RequestPacket request = new RequestPacket(Password, PacketId, RequestPacketType.Auth);
             WriteRequest(request);
-            Task.Delay(2000);
-            ResponsePacket response = ReadResponse();
-            if (request.Id == response.Id)
+            ResponsePacket authRes = ReadResponse();
+            if (request.Id == authRes.Id)
             {
-                ResponsePacket authResult = ReadResponse();
-                if (authResult.Id == -1)
+                if (authRes.Id == -1)
                 {
                     this.IsAuthenticated = false;
 
                 }
-                else if (authResult.Type == ResponsePacketType.AuthResponse)
+                else if (authRes.Type == ResponsePacketType.AuthResponse)
                 {
                     this.IsAuthenticated = true;
+                }
+                else
+                {
+                    throw new Exception("Unknown resopnse type error");
                 }
             }
             else
             {
-                throw new Exception("invalid value of Id parameter of response. request:" + request + " response:" + response);
+                throw new Exception("Invalid value of Id parameter of response. request:" + request + " response:" + authRes);
             }
         }
 
