@@ -1,6 +1,6 @@
 # RCON Controller
 
-Minecraft 用の RCON のクライアントライブラリ。4096 バイトを超えるレスポンスには対応していません。（[参照](https://wiki.vg/RCON#Fragmentation)）
+Minecraft 用の RCON のクライアントライブラリ。4096 バイトを超えるレスポンスには対応していません。
 
 ## サンプルコード
 
