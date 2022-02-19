@@ -8,11 +8,13 @@ namespace ConsoleClient
     {
         public static void Main(string[] args)
         {
-            if(args.Length == 2){
-                Console.WriteLine("IP address and port must be specified.");
+            if(args.Length != 2){
+                Console.WriteLine("IP address and port must be passed as arguments.");
             }
             string ipStr = args[0];
             string portStr = args[1];
+
+            Console.CancelKeyPress += new ConsoleCancelEventHandler(CancelEventHandler);
 
             RCONController controller = new(ipStr, int.Parse(portStr));
 
@@ -21,9 +23,10 @@ namespace ConsoleClient
             if (controller.IsAuthenticated)
             {
                 Console.WriteLine("Successfully authenticated.");
+                Console.WriteLine("Press ctrl+C when exit.");
                 while (true)
                 {
-                    Console.Write(">");
+                    Console.Write("> ");
                     string? command = Console.ReadLine();
                     if (command != null)
                     {
@@ -37,6 +40,10 @@ namespace ConsoleClient
             }
 
             controller.Dispose();
+        }
+
+        static void CancelEventHandler(object? sender, ConsoleCancelEventArgs args){
+            Console.WriteLine("\nBye");
         }
     }
 }
